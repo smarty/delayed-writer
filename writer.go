@@ -6,10 +6,11 @@ import (
 )
 
 type writer struct {
-	pool    *sync.Pool
-	buffer  chan Message
-	target  io.WriteCloser
-	monitor Monitor
+	pool     *sync.Pool
+	buffer   chan Message
+	target   io.WriteCloser
+	monitor  Monitor
+	sequence uint64
 }
 
 func newWriter(config configuration) Writer {
@@ -20,7 +21,13 @@ func newWriter(config configuration) Writer {
 		pool.Put(config.Source())
 	}
 
-	return &writer{pool: pool, buffer: buffer, target: config.Target, monitor: config.Monitor}
+	return &writer{
+		pool:     pool,
+		buffer:   buffer,
+		target:   config.Target,
+		sequence: config.Sequence,
+		monitor:  config.Monitor,
+	}
 }
 
 func (this *writer) Write(callback func(message Message)) {
@@ -44,6 +51,9 @@ func (this *writer) Listen() {
 	}
 }
 func (this *writer) writeMessage(message Message) {
+	message.Sequence(this.sequence)
+	this.sequence++
+
 	if _, err := message.WriteTo(this.target); err != nil {
 		this.monitor.WriteFailed(message, err)
 	} else {

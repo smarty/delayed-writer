@@ -20,6 +20,9 @@ func (singleton) PoolSize(value int) option {
 func (singleton) ChannelSize(value int) option {
 	return func(this *configuration) { this.ChannelSize = value }
 }
+func (singleton) Sequence(value uint64) option {
+	return func(this *configuration) { this.Sequence = value }
+}
 func (singleton) Monitor(value Monitor) option {
 	return func(this *configuration) { this.Monitor = value }
 }
@@ -39,6 +42,7 @@ func (singleton) defaults(options ...option) []option {
 		Options.Target(empty),
 		Options.PoolSize(1024),
 		Options.ChannelSize(128),
+		Options.Sequence(0),
 		Options.Monitor(empty),
 	}, options...)
 }
@@ -50,6 +54,7 @@ type configuration struct {
 	Target      io.WriteCloser
 	PoolSize    int
 	ChannelSize int
+	Sequence    uint64
 	Monitor     Monitor
 }
 type option func(*configuration)
