@@ -5,6 +5,13 @@ import "io"
 func New(options ...option) Writer {
 	var config configuration
 	Options.apply(options...)(&config)
+
+	if config.Target == nil {
+		return &nopWriter{}
+	} else if _, ok := config.Target.(*nop); ok {
+		return &nopWriter{}
+	}
+
 	return newWriter(config)
 }
 

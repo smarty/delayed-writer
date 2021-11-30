@@ -65,3 +65,11 @@ func (this *writer) Close() error {
 	close(this.buffer)
 	return nil
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+type nopWriter struct{}
+
+func (*nopWriter) Write(func(Message)) {}
+func (*nopWriter) Listen()             {}
+func (*nopWriter) Close() error        { return nil }
