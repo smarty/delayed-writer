@@ -1,21 +1,20 @@
 package delayed
 
 import (
-	"fmt"
 	"io"
 	"sync"
 )
 
 type writer struct {
 	pool    *sync.Pool
-	buffer  chan fmt.Stringer
+	buffer  chan Message
 	target  io.WriteCloser
 	monitor Monitor
 }
 
 func newWriter(config configuration) Writer {
 	pool := &sync.Pool{New: func() interface{} { return config.Source() }}
-	buffer := make(chan fmt.Stringer, config.ChannelSize)
+	buffer := make(chan Message, config.ChannelSize)
 
 	for i := 0; i < config.PoolSize; i++ {
 		pool.Put(config.Source())
@@ -24,30 +23,29 @@ func newWriter(config configuration) Writer {
 	return &writer{pool: pool, buffer: buffer, target: config.Target, monitor: config.Monitor}
 }
 
-func (this *writer) Write(callback func(message fmt.Stringer)) {
-	item := this.pool.Get().(fmt.Stringer)
-	callback(item)
+func (this *writer) Write(callback func(message Message)) {
+	message := this.pool.Get().(Message)
+	callback(message)
 
 	select {
-	case this.buffer <- item:
+	case this.buffer <- message:
 		this.monitor.Buffered()
 	default:
-		this.monitor.Discarded(item)
-		this.pool.Put(item)
+		this.monitor.Discarded(message)
+		this.pool.Put(message)
 	}
 }
 
 func (this *writer) Listen() {
 	defer func() { _ = this.target.Close() }()
-	for item := range this.buffer {
-		this.writeMessage(item)
-		this.pool.Put(item)
+	for message := range this.buffer {
+		this.writeMessage(message)
+		this.pool.Put(message)
 	}
 }
-func (this *writer) writeMessage(item fmt.Stringer) {
-	message := item.String()
-	if _, err := io.WriteString(this.target, message); err != nil {
-		this.monitor.WriteFailed(item, err)
+func (this *writer) writeMessage(message Message) {
+	if _, err := message.WriteTo(this.target); err != nil {
+		this.monitor.WriteFailed(message, err)
 	} else {
 		this.monitor.Written()
 	}

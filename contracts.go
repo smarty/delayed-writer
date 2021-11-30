@@ -1,12 +1,14 @@
 package delayed
 
-import (
-	"fmt"
-	"io"
-)
+import "io"
+
+type Message interface {
+	Sequence(uint64)
+	io.WriterTo
+}
 
 type Writer interface {
-	Write(callback func(message fmt.Stringer))
+	Write(callback func(Message))
 	ListenCloser
 }
 
@@ -17,7 +19,7 @@ type ListenCloser interface {
 
 type Monitor interface {
 	Buffered()
-	Discarded(fmt.Stringer)
+	Discarded(Message)
 	Written()
-	WriteFailed(fmt.Stringer, error)
+	WriteFailed(Message, error)
 }

@@ -1,9 +1,6 @@
 package delayed
 
-import (
-	"fmt"
-	"io"
-)
+import "io"
 
 func New(options ...option) Writer {
 	var config configuration
@@ -11,7 +8,7 @@ func New(options ...option) Writer {
 	return newWriter(config)
 }
 
-func (singleton) Source(value func() fmt.Stringer) option {
+func (singleton) Source(value func() Message) option {
 	return func(this *configuration) { this.Source = value }
 }
 func (singleton) Target(value io.WriteCloser) option {
@@ -38,7 +35,7 @@ func (singleton) defaults(options ...option) []option {
 	empty := &nop{}
 
 	return append([]option{
-		Options.Source(func() fmt.Stringer { return empty }),
+		Options.Source(func() Message { return empty }),
 		Options.Target(empty),
 		Options.PoolSize(1024),
 		Options.ChannelSize(128),
@@ -49,7 +46,7 @@ func (singleton) defaults(options ...option) []option {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 type configuration struct {
-	Source      func() fmt.Stringer
+	Source      func() Message
 	Target      io.WriteCloser
 	PoolSize    int
 	ChannelSize int
@@ -64,12 +61,13 @@ var Options singleton
 
 type nop struct{}
 
-func (*nop) Buffered()                       {}
-func (*nop) Discarded(fmt.Stringer)          {}
-func (*nop) Written()                        {}
-func (*nop) WriteFailed(fmt.Stringer, error) {}
+func (*nop) Buffered()                      {}
+func (*nop) Discarded(_ Message)            {}
+func (*nop) Written()                       {}
+func (*nop) WriteFailed(_ Message, _ error) {}
 
-func (*nop) String() string { return "" }
+func (*nop) Sequence(uint64)                  {}
+func (*nop) WriteTo(io.Writer) (int64, error) { return 0, nil }
 
 func (*nop) Write([]byte) (int, error) { return 0, nil }
 func (*nop) Close() error              { return nil }
