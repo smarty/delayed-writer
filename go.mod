@@ -1,3 +1,3 @@
 module github.com/smarty/delayed-writer
 
-go 1.17
+go 1.21
